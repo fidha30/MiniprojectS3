@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diabetic Retinopathy Detection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+                        url('https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80') center/cover no-repeat fixed;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 90%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            color: #333;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: #666;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .upload-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .upload-zone {
+            border: 3px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            padding: 3rem 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .upload-zone:hover {
+            border-color: white;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .upload-zone.dragover {
+            border-color: #fff;
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+
+        .upload-text h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+
+        .upload-text p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .results-section {
+            display: none;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .image-preview {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .preview-image {
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            margin-bottom: 1rem;
+        }
+
+        .prediction-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .stage-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .stage-badge {
+            padding: 0.8rem 2rem;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: white;
+        }
+
+        .stage-description {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .recommendations {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 1rem 1.5rem;
+            border-radius: 0 10px 10px 0;
+            margin-bottom: 1.5rem;
+        }
+
+        .recommendations h4 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 1rem;
+            border-radius: 10px;
+            border: 1px solid #fcc;
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .new-prediction {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            border: none;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                padding: 1.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .upload-zone {
+                padding: 2rem 1rem;
+            }
+            
+            .upload-icon {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 Diabetic Retinopathy Detection</h1>
+            <p>Advanced AI-powered analysis for early detection of diabetic retinopathy stages.</p>
+        </div>
+
+        <div class="upload-section" id="upload-section">
+            <div class="upload-zone" id="upload-zone">
+                <div class="upload-icon">📷</div>
+                <div class="upload-text">
+                    <h3>Upload Image</h3>
+                    <p>Drag and drop an image here, or click to browse</p>
+                    <button class="btn-primary" onclick="document.getElementById('file-input').click()">
+                        Choose Image
+                    </button>
+                </div>
+            </div>
+            <input type="file" id="file-input" accept="image/*">
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <h3>Analyzing Image...</h3>
+            <p>Please wait while our AI analyzes the image</p>
+        </div>
+
+        <div class="results-section" id="results">
+            <div class="image-preview">
+                <img id="preview-image" class="preview-image" alt="Uploaded Image">
+            </div>
+
+            <div class="prediction-card">
+                <div class="stage-header">
+                    <div class="stage-badge" id="stage-badge">Stage 0</div>
+                </div>
+                
+                <div class="stage-description" id="stage-description">
+                    Healthy image - No signs of diabetic retinopathy
+                </div>
+
+                <div class="recommendations">
+                    <h4>📋 Recommendations</h4>
+                    <p id="recommendations-text">Continue regular eye checkups annually</p>
+                </div>
+            </div>
+
+            <div class="new-prediction">
+                <button class="btn-secondary" onclick="resetApp()">
+                    🔄 Analyze Another Image
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+        const uploadSection = document.getElementById('upload-section');
+        const loadingSection = document.getElementById('loading');
+        const resultsSection = document.getElementById('results');
+
+        // Stage colors for visualization
+        const stageColors = {
+            0: '#10B981', // Green
+            1: '#F59E0B', // Yellow  
+            2: '#F97316', // Orange
+            3: '#EF4444', // Red
+            4: '#991B1B'  // Dark Red
+        };
+
+        // Drag and drop functionality
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        uploadZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            // Validate file type
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/tiff'];
+            if (!validTypes.includes(file.type)) {
+                showError('Please upload a valid image file (JPEG, PNG, GIF, BMP, TIFF)');
+                return;
+            }
+
+            // Validate file size (max 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                showError('File size must be less than 10MB');
+                return;
+            }
+
+            // Show loading
+            uploadSection.style.display = 'none';
+            loadingSection.style.display = 'block';
+            resultsSection.style.display = 'none';
+
+            // Create FormData and send to server
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingSection.style.display = 'none';
+                
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    showError(data.error || 'Prediction failed');
+                }
+            })
+            .catch(error => {
+                loadingSection.style.display = 'none';
+                showError('Network error: ' + error.message);
+            });
+        }
+
+        function displayResults(data) {
+            const prediction = data.prediction;
+            const stageInfo = prediction.stage_info;
+            
+            // Display uploaded image
+            document.getElementById('preview-image').src = data.image_data;
+            
+            // Update stage information
+            const stageBadge = document.getElementById('stage-badge');
+            stageBadge.textContent = stageInfo.name;
+            stageBadge.style.backgroundColor = stageInfo.color;
+            
+            // Update description and recommendations
+            document.getElementById('stage-description').textContent = stageInfo.description;
+            document.getElementById('recommendations-text').textContent = stageInfo.recommendations;
+            
+            // Show results with animation delay
+            setTimeout(() => {
+                resultsSection.style.display = 'block';
+            }, 100);
+        }
+
+        function showError(message) {
+            uploadSection.style.display = 'block';
+            loadingSection.style.display = 'none';
+            
+            // Remove existing error messages
+            const existingError = document.querySelector('.error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Create and show error message
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            uploadSection.appendChild(errorDiv);
+            
+            // Auto-remove error after 5 seconds
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.remove();
+                }
+            }, 5000);
+        }
+
+        function resetApp() {
+            uploadSection.style.display = 'block';
+            loadingSection.style.display = 'none';
+            resultsSection.style.display = 'none';
+            
+            // Reset file input
+            fileInput.value = '';
+            
+            // Remove any error messages
+            const existingError = document.querySelector('.error');
+            if (existingError) {
+                existingError.remove();
+            }
+        }
+    </script>
+</body>
+</html>
